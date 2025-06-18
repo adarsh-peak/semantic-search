@@ -1,0 +1,136 @@
+[
+  {
+    "id": 101,
+    "name": "Mamaearth",
+    "domain": "mamaearth.in",
+    "description": "Mamaearth is a direct-to-consumer brand offering personal care products made from natural ingredients.",
+    "founded_year": 2016,
+    "industry": "Personal Care",
+    "founders": [
+      {
+        "name": "Ghazal Alagh",
+        "linkedin": "https://linkedin.com/in/ghazalalagh"
+      },
+      {
+        "name": "Varun Alagh",
+        "linkedin": "https://linkedin.com/in/varunalagh"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/mamaearth",
+      "facebook": "https://facebook.com/mamaearthindia",
+      "twitter": "https://twitter.com/mamaearthindia"
+    },
+    "is_portfolio": true,
+    "tags": ["D2C", "Natural Products", "Startup", "India"]
+  },
+  {
+    "id": 102,
+    "name": "Nykaa",
+    "domain": "nykaa.com",
+    "description": "Nykaa is an Indian e-commerce company selling beauty, wellness, and fashion products.",
+    "founded_year": 2012,
+    "industry": "E-commerce",
+    "founders": [
+      {
+        "name": "Falguni Nayar",
+        "linkedin": "https://linkedin.com/in/falguni-nayar"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/nykaa",
+      "facebook": "https://facebook.com/nykaa",
+      "twitter": "https://twitter.com/MyNykaa"
+    },
+    "is_portfolio": true,
+    "tags": ["Beauty", "E-commerce", "India"]
+  },
+  {
+    "id": 103,
+    "name": "Razorpay",
+    "domain": "razorpay.com",
+    "description": "Razorpay is a fintech company that provides payment solutions to businesses in India.",
+    "founded_year": 2014,
+    "industry": "Fintech",
+    "founders": [
+      {
+        "name": "Harshil Mathur",
+        "linkedin": "https://linkedin.com/in/harshilmathur"
+      },
+      {
+        "name": "Shashank Kumar",
+        "linkedin": "https://linkedin.com/in/shashankkumar"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/razorpay",
+      "facebook": "https://facebook.com/razorpay",
+      "twitter": "https://twitter.com/razorpay"
+    },
+    "is_portfolio": true,
+    "tags": ["Fintech", "Payments", "India"]
+  },
+  {
+    "id": 104,
+    "name": "CRED",
+    "domain": "cred.club",
+    "description": "CRED is a members-only app that rewards users for paying their credit card bills.",
+    "founded_year": 2018,
+    "industry": "Fintech",
+    "founders": [
+      {
+        "name": "Kunal Shah",
+        "linkedin": "https://linkedin.com/in/kunalbshah"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/cred-club",
+      "facebook": "https://facebook.com/credclub",
+      "twitter": "https://twitter.com/CRED_club"
+    },
+    "is_portfolio": false,
+    "tags": ["Fintech", "Rewards", "India"]
+  },
+  {
+    "id": 105,
+    "name": "BYJU'S",
+    "domain": "byjus.com",
+    "description": "BYJU'S is an Indian edtech company offering personalized learning programs.",
+    "founded_year": 2011,
+    "industry": "Edtech",
+    "founders": [
+      {
+        "name": "Byju Raveendran",
+        "linkedin": "https://linkedin.com/in/byjuraveendran"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/byjus",
+      "facebook": "https://facebook.com/byjuslearning",
+      "twitter": "https://twitter.com/byjus"
+    },
+    "is_portfolio": false,
+    "tags": ["Edtech", "Learning", "India"]
+  },
+  {
+    "id": 106,
+    "name": "Zerodha",
+    "domain": "zerodha.com",
+    "description": "Zerodha is a financial services company offering discount brokerage services.",
+    "founded_year": 2010,
+    "industry": "Stock Trading",
+    "founders": [
+      {
+        "name": "Nithin Kamath",
+        "linkedin": "https://linkedin.com/in/nithinkamath"
+      }
+    ],
+    "social_links": {
+      "linkedin": "https://linkedin.com/company/zerodha",
+      "facebook": "https://facebook.com/zerodha.in",
+      "twitter": "https://twitter.com/zerodhaonline"
+    },
+    "is_portfolio": false,
+    "tags": ["Trading", "Finance", "India"]
+  }
+]
