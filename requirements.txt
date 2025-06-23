@@ -6,4 +6,4 @@ numpy
 pydantic
 pdfplumber
 ollama
-elasticsearch
+elasticsearch<9.0.0

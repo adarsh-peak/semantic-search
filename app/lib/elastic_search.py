@@ -2,8 +2,6 @@ from elasticsearch import Elasticsearch
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 import uuid
-import os
-
 from app.configs.env import get_settings
 from app.configs.constants import EmbeddingConstant, ElasticConstant
 
@@ -16,9 +14,14 @@ class ElasticsearchVectorStore:
     ):
         self.index_name = index_name
         self.dims = EmbeddingConstant.dims
-        self.es = Elasticsearch(f"http://{config.elastic_host}:{config.elastic_port}")
+        self.es = Elasticsearch(
+            f"http://{config.elastic_host}:{config.elastic_port}",
+            headers={
+                "Accept": "application/vnd.elasticsearch+json; compatible-with=8",
+                "Content-Type": "application/vnd.elasticsearch+json; compatible-with=8"
+            }
+        )
         self.model = SentenceTransformer(EmbeddingConstant.model)
-        self.original_documents: List[str] = []
 
     def init_index(self):
         if self.es.indices.exists(index=self.index_name):
@@ -49,7 +52,6 @@ class ElasticsearchVectorStore:
 
     def embed_doc(self, texts: List[str]):
         for text in texts:
-            self.original_documents.append(text)
             embedding = self.model.encode(text).tolist()
             doc = {
                 "text": text,
@@ -81,18 +83,11 @@ class ElasticsearchVectorStore:
 
         return results
 
-    def save(self, docs_path: str = "documents.txt"):
-        with open(docs_path, "w", encoding="utf-8") as f:
-            for doc in self.original_documents:
-                f.write(doc.strip().replace("\n", " ") + "\n")
-        print(f"Saved {len(self.original_documents)} documents to '{docs_path}'.")
-
-    def load(self, docs_path: str = "documents.txt"):
-        if os.path.exists(docs_path):
-            with open(docs_path, "r", encoding="utf-8") as f:
-                self.original_documents = [line.strip() for line in f]
-
-            print(f"Loaded {len(self.original_documents)} documents from '{docs_path}'.")
-
-            # Re-embed and re-index loaded documents
-            self.embed_doc(self.original_documents)
+    def reset_index(self):
+        """
+        Deletes the entire index (including mappings and data), then recreates it.
+        """
+        if self.es.indices.exists(index=self.index_name):
+            self.es.indices.delete(index=self.index_name)
+            print(f"Index '{self.index_name}' deleted.")
+        self.init_index()
