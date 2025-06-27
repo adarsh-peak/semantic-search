@@ -2,8 +2,11 @@ from typing import List
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from app.lib.elastic_search import ElasticsearchVectorStore  # SemanticSearch now handles flattening
-from app.utils import pdf_to_text
+from app.utils import row_to_text_full, parse_csv_to_summaries
 from app.lib.llm import SemanticSearchLLM
+import csv
+import io
+from app.lib.data_partioning import DataPartitioning
 
 app = FastAPI()
 search_engine = ElasticsearchVectorStore()  # Global instance
@@ -25,38 +28,36 @@ def read_root():
     return {"message": "Semantic search API is up!"}
 
 @app.post("/document")
-async def embed_documents(files: List[UploadFile] = File(...)):
-    if not files:
-        raise HTTPException(status_code=400, detail="No PDF files uploaded.")
+async def embed_documents(file: UploadFile = File(...)):
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported.")
 
     texts = []
-    for file in files:
-        if not file.filename.endswith(".pdf"):
-            raise HTTPException(status_code=400, detail=f"Unsupported file: {file.filename}")
-        try:
-            text = pdf_to_text(file)
-            if not text.strip():
-                raise HTTPException(status_code=422, detail=f"No text extracted from {file.filename}")
-            texts.append(text)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to extract text from {file.filename}: {e}")
+    rows = DataPartitioning.read_csv_file(file)
+    for row in rows:
+        texts.append(DataPartitioning.group_based_on_context(row))
 
-    search_engine.embed_doc(texts)
-    return {"message": f"{len(texts)} PDF documents embedded and indexed."}
+    if not texts:
+        raise HTTPException(status_code=422, detail="No valid rows found in the CSV.")
+    
+
+    search_engine.embed_doc_chunks([chunk for item in texts for chunk in item])
+    return {"message": f"{len(texts)} rows embedded and indexed."}
+
 
 @app.get("/search")
 def query_documents(query: str = Query(..., description="Your search query"), top_k: int = 3):
     try:
         results = search_engine.query(query, top_k)
         print(results)
-        context = [item.get('text') for item in results]
-        results = llm.answer_question(query, context)
+        context = [{"text": item.get('text'), "score": item.get('score')} for item in results]
+        # results = llm.answer_question(query, [item.get('text') for item in context])
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     return {
         "query": query,
-        "results": results,
+        # "results": results,
         "context": context
     }
 

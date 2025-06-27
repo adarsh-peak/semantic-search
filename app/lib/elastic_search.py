@@ -31,6 +31,9 @@ class ElasticsearchVectorStore:
         mapping = {
             "mappings": {
                 "properties": {
+                    "company_id": {"type": "keyword"},
+                    "company_name": {"type": "text"},
+                    "chunk_type": {"type": "keyword"},
                     "text": {"type": "text"},
                     "embedding": {
                         "type": "dense_vector",
@@ -49,6 +52,23 @@ class ElasticsearchVectorStore:
 
         self.es.indices.create(index=self.index_name, body=mapping)
         print(f"Index '{self.index_name}' created.")
+        
+    def embed_doc_chunks(self, data: List[Dict]):
+        for doc in data:
+            text = doc.get("text")
+            embedding = self.model.encode(text).tolist()
+
+            es_doc = {
+                "company_id": doc.get("company_id"),
+                "company_name": doc.get("company_name"),
+                "chunk_type": doc.get("chunk_type"),
+                "text": text,
+                "embedding": embedding
+            }
+
+            self.es.index(index=self.index_name, id=str(uuid.uuid4()), body=es_doc)
+        
+        print(f"Added {len(data)} documents to index '{self.index_name}'.")
 
     def embed_doc(self, texts: List[str]):
         for text in texts:
