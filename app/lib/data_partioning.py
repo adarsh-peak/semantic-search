@@ -11,6 +11,15 @@ class DataPartitioning:
   def group_based_on_context(company: dict):
     company_id = company.get("id")
     company_name = company.get("Company Name")
+    ownership = company.get("PXV Ownership")
+    total_funding = company.get("Total PXV Funding")
+    last_round_amt = company.get("PXV Last Round Amount")
+    latest_fmv = company.get("Latest FMV")
+    latest_post_money = company.get("Latest Post Money")
+    first_round = company.get("PXV First Round")
+    last_round = company.get("PXV Last Round")
+    first_investment = company.get("First Round")
+    last_investment = company.get("Last Round")
     chunks = []
 
     for chunk_type, field_list in CHUNK_FIELD_MAP.items():
@@ -20,6 +29,15 @@ class DataPartitioning:
                 "company_id": company_id,
                 "company_name": company_name,
                 "chunk_type": chunk_type,
+                "pxv_ownership": ownership,
+                "total_pvx_funding": total_funding,
+                "pxv_last_round_amount": last_round_amt,
+                "latest_fmv": latest_fmv,
+                "latest_post_money": latest_post_money,
+                "first_round_date": first_investment,
+                "last_round_date": last_investment,
+                "pxv_first_round_date": first_round,
+                "pxv_last_round_date": last_round,
                 "text": text
             })
 
@@ -67,36 +85,89 @@ class DataPartitioning:
   @staticmethod
   def format_chunk_text(chunk_type: str, fields: Dict[str, str]) -> str:
     """
-    helper for chunk partion
+    Converts chunk data into natural language summaries for embedding.
     """
-    def format_value(k: str, v: str) -> str:
-        if not v:
-            return ""
-        if "Round" in k or "Date" in k:
-            return f"{k.replace('_', ' ')}: {v[:10]}"
-        if "Funding" in k or "Money" in k or "FMV" in k or "Amount" in k or "Ownership" in k:
-            return f"{k.replace('_', ' ')}: ${v}M" if v else ""
-        return f"{k.replace('_', ' ')}: {v}"
+    def clean(v):
+        return v.strip() if isinstance(v, str) else v
 
-    if chunk_type == "team":
-        # Handle founders separately
-        founders = []
-        try:
-            if fields.get("Founders"):
-                founders = json.loads(fields.get("Founders", "[]"))
-        except Exception:
-            founders = []
+    if chunk_type == "basic_info":
+        parts = []
 
-        founder_text = ", ".join(f"{f['name']} ({f['role']})" for f in founders if f.get("name"))
-        deal_team = fields.get("Deal Team Members", "")
+        name = clean(fields.get("Company Name"))
+        geo = clean(fields.get("Geo"))
+        status = clean(fields.get("Status"))
+        type_ = clean(fields.get("Type"))
+        location = clean(fields.get("Location"))
+        stealth = clean(fields.get("Stealth"))
+        sectors = clean(fields.get("Sectors"))
+        founders = clean(fields.get("Founders"))
+        reviewers = clean(fields.get("PXV Partners/Reviewer"))
+        strategy = clean(fields.get("Strategy"))
+        program = clean(fields.get("Program"))
+        deal_team = clean(fields.get("Deal Team Members"))
 
-        lines = []
-        if founder_text:
-            lines.append(f"Founders: {founder_text}.")
+        if name:
+            parts.append(f"{name} is a {type_} company based in {geo}.")
+        if status:
+            parts.append(f"It is currently {status.lower()}.")
+        if stealth and stealth.upper() == "TRUE":
+            parts.append("The company is in stealth mode.")
+        if sectors:
+            parts.append(f"It operates in the {sectors} sector.")
+        if founders:
+            parts.append(f"It was founded by {founders}.")
         if deal_team:
-            lines.append(f"Deal Team Members: {deal_team}.")
-        return " ".join(lines)
+            parts.append(f"Deal team members include {deal_team}.")
+        if reviewers:
+            parts.append(f"PXV reviewers for the company include {reviewers}.")
+        if strategy:
+            parts.append(f"The company's strategy is: {strategy}.")
+        if program:
+            parts.append(f"It is part of the {program} program.")
 
-    lines = [format_value(k, fields[k]) for k in CHUNK_FIELD_MAP[chunk_type] if k in fields and fields[k]]
-    return " ".join(lines).strip()
+        return " ".join(parts)
+
+    elif chunk_type == "investment":
+        parts = []
+
+        def fmt_money(label, val):
+            return f"{label} was ${val}M." if val else ""
+
+        def fmt_date(label, val):
+            return f"{label} was on {val[:10]}." if val else ""
+
+        ownership = clean(fields.get("PXV Ownership"))
+        total_funding = clean(fields.get("Total PXV Funding"))
+        last_round_amt = clean(fields.get("PXV Last Round Amount"))
+        latest_fmv = clean(fields.get("Latest FMV"))
+        latest_post_money = clean(fields.get("Latest Post Money"))
+        first_round = clean(fields.get("PXV First Round"))
+        last_round = clean(fields.get("PXV Last Round"))
+        first_investment = clean(fields.get("First Round"))
+        last_investment = clean(fields.get("Last Round"))
+
+        if ownership:
+            parts.append(f"PXV owns {ownership}% of the company.")
+        if total_funding:
+            parts.append(fmt_money("Total PXV funding", total_funding))
+        if last_round_amt:
+            parts.append(fmt_money("The last round amount", last_round_amt))
+        if latest_fmv:
+            parts.append(fmt_money("The latest FMV", latest_fmv))
+        if latest_post_money:
+            parts.append(fmt_money("The latest post-money valuation", latest_post_money))
+        if first_round:
+            parts.append(fmt_date("PXV first participated", first_round))
+        if last_round:
+            parts.append(fmt_date("PXV last participated", last_round))
+        if first_investment:
+            parts.append(fmt_date("The company’s first funding round", first_investment))
+        if last_investment:
+            parts.append(fmt_date("The last funding round", last_investment))
+
+        return " ".join(parts)
+
+    else:
+        return ""
+
   

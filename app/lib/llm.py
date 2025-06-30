@@ -47,42 +47,101 @@ class SemanticSearchLLM:
 
     def extract_query_and_filters(self, user_query: str) -> Dict[str, Any]:
         prompt = f"""
-                You are a helpful assistant that generates Elasticsearch-compatible query filters from a user's natural language request.
+            You are a helpful assistant that converts a user's natural language query into:
+            1. A cleaned string to be used for semantic embedding search (based on the 'text' field)
+            2. Optional Elasticsearch-compatible filters (on indexed fields)
+            3. Optional sorting instructions if the user asks for rankings (e.g., "top funded", "highest ownership", "latest round")
 
-                Given the user query: "{user_query}"
+            Given this user query: "{user_query}"
 
-                Return a JSON object with:
-                1. "query_text": cleaned string for semantic embedding search.
-                2. "es_filter": a valid Elasticsearch query fragment (under `bool -> filter`) using:
-                - `term` or `terms` for categorical filters
-                - `range` for numeric/date filters
-                - `term` with boolean for true/false
-                - keyword fields for string match (e.g., "Geo.keyword")
+            You MUST return a strictly valid JSON object with the following structure:
+            1. "query_text": cleaned version of the query for semantic vector search
+            2. "es_filter": a valid Elasticsearch bool->filter query if relevant, or `null` if not applicable
+            3. "sort_by": one of the allowed sortable fields below, or `null` if not relevant
+            4. "sort_order": either "desc" or "asc" if sorting is applicable, otherwise `null`
 
-                Only include fields from:
-                ["Geo", "Sectors", "Status", "Type", "Investment Type", "Location", "Program", "Deal Team Members", "Founders",
-                "PXV Ownership", "PXV Last Round", "Total PXV Funding", "Latest FMV", "Latest Post Money", "First Round",
-                "Last Round", "PXV First Round", "PXV Last Round Amount", "Stealth"]
+            ✅ Allowed chunk_type values (only use these for filtering):
+            - "basic_info"
+            - "investment"
 
-                Example output:
-                {{
-                "query_text": "AI startups in health sector",
-                "es_filter": {{
-                    "bool": {{
-                    "filter": [
-                        {{ "term": {{ "Geo.keyword": "India" }} }},
-                        {{ "term": {{ "Sectors.keyword": "health" }} }},
-                        {{ "range": {{ "First Round": {{ "gt": "2020-01-01" }} }} }}
-                    ]
-                    }}
+            ✅ Allowed metadata fields for filtering and sorting:
+            - "chunk_type" (keyword, use "term")
+            - "company_id" (keyword, use "term")
+            - "company_name" (text, use "match")
+            - "pxv_ownership" (float)
+            - "total_pvx_funding" (float)
+            - "pxv_last_round_amount" (float)
+            - "latest_fmv" (float)
+            - "latest_post_money" (float)
+            - "first_round_date" (date)
+            - "last_round_date" (date)
+            - "pxv_first_round_date" (date)
+            - "pxv_last_round_date" (date)
+
+            ⚠️ DO NOT:
+            - Invent or use any fields not listed above
+            - Use both "term" and "terms" for the same field
+            - Use `company_name` to match people (e.g., founders or reviewers)
+            - Output invalid JSON — structure and syntax must be correct
+            - Wrap the JSON in code blocks or markdown (no backticks)
+            - Use any other chunk type apart from ["investment", "basic_info"]
+
+            ✅ Examples:
+
+            Input: "Which companies has PXV invested in recently?"
+            Output:
+            {{
+            "query_text": "PXV recent investments",
+            "es_filter": {{
+                "bool": {{
+                "filter": [
+                    {{ "term": {{ "chunk_type": "investment" }} }}
+                ]
                 }}
+            }},
+            "sort_by": "pxv_last_round_date",
+            "sort_order": "desc"
+            }}
+
+            Input: "List companies with highest PXV ownership"
+            Output:
+            {{
+            "query_text": "companies with highest PXV ownership",
+            "es_filter": {{
+                "bool": {{
+                "filter": [
+                    {{ "term": {{ "chunk_type": "investment" }} }}
+                ]
                 }}
+            }},
+            "sort_by": "pxv_ownership",
+            "sort_order": "desc"
+            }}
+
+            Input: "What does Equilibrium do?"
+            Output:
+            {{
+            "query_text": "Equilibrium description",
+            "es_filter": {{
+                "bool": {{
+                "filter": [
+                    {{ "term": {{ "chunk_type": "basic_info" }} }},
+                    {{ "match": {{ "company_name": "Equilibrium" }} }}
+                ]
+                }}
+            }},
+            "sort_by": null,
+            "sort_order": null
+            }}
+
+            If filtering or sorting is not applicable for the query, use `null` for "es_filter", "sort_by", and "sort_order".
             """
 
 
 
         try:
             response = self.query_llm(prompt)
+            print("response", response, flush=True)
             parsed = self.extract_json_from_response(response)
             return parsed
         except Exception as e:

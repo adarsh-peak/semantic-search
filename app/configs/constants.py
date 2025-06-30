@@ -10,19 +10,11 @@ class LLMConstant:
   
 CHUNK_FIELD_MAP = {
     "basic_info": [
-        "Company Name", "Type", "Status", "Geo", "Location", "Sectors", "Stealth"
+        "Company Name", "Type", "Status", "Geo", "Location", "Sectors", "Stealth",  "Founders", "Deal Team Members",  "Strategy", "PXV Partners/Reviewer", "Funds", "Program"
     ],
-    "pxv_investment_summary": [
+    "investment": [
         "PXV First Round", "PXV Last Round", "PXV Ownership",
-        "Total PXV Funding", "PXV Last Round Amount"
-    ],
-    "funding_snapshot": [
+        "Total PXV Funding", "PXV Last Round Amount",
         "Latest Post Money", "Latest FMV", "First Round", "Last Round"
-    ],
-    "strategy": [
-        "Strategy", "PXV Partners/Reviewer", "Funds", "Program"
-    ],
-    "team": [
-        "Founders", "Deal Team Members"
     ]
 }

@@ -1,6 +1,6 @@
 from elasticsearch import Elasticsearch
 from sentence_transformers import SentenceTransformer
-from typing import List, Dict
+from typing import List, Dict, Any
 import uuid
 from app.configs.env import get_settings
 from app.configs.constants import EmbeddingConstant, ElasticConstant
@@ -45,7 +45,17 @@ class ElasticsearchVectorStore:
                             "m": 16,
                             "ef_construction": 100
                         }
-                    }
+                    },
+                    # ✅ Add structured fields for analytical queries
+                    "pxv_ownership": {"type": "float"},
+                    "total_pvx_funding": {"type": "float"},
+                    "pxv_last_round_amount": {"type": "float"},
+                    "latest_fmv": {"type": "float"},
+                    "latest_post_money": {"type": "float"},
+                    "first_round_date": {"type": "date"},
+                    "last_round_date": {"type": "date"},
+                    "pxv_first_round_date": {"type": "date"},
+                    "pxv_last_round_date": {"type": "date"}
                 }
             }
         }
@@ -102,6 +112,27 @@ class ElasticsearchVectorStore:
         ]
 
         return results
+    
+    def hybrid_search_query(self, query: str, es_filter: Dict[str, Any], k: int = 10) -> Dict[str, Any]:
+        query_vector = self.model.encode(query).tolist()
+
+        base_filter = es_filter.get("bool", {}).get("filter", [])
+
+        return {
+            "script_score": {
+                "query": {
+                    "bool": {
+                        "filter": base_filter
+                    }
+                },
+                "script": {
+                    "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                    "params": {
+                        "query_vector": query_vector
+                    }
+                }
+            }
+        }
 
     def reset_index(self):
         """

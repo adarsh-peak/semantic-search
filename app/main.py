@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Dict, Any
 from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from app.lib.elastic_search import ElasticsearchVectorStore  # SemanticSearch now handles flattening
-from app.utils import row_to_text_full, parse_csv_to_summaries
+from app.utils import row_to_text_full, parse_csv_to_summaries, dict_to_text
 from app.lib.llm import SemanticSearchLLM
 import csv
 import io
@@ -36,6 +36,8 @@ async def embed_documents(file: UploadFile = File(...)):
     rows = DataPartitioning.read_csv_file(file)
     for row in rows:
         texts.append(DataPartitioning.group_based_on_context(row))
+        
+    print("texts", texts)
 
     if not texts:
         raise HTTPException(status_code=422, detail="No valid rows found in the CSV.")
@@ -46,20 +48,41 @@ async def embed_documents(file: UploadFile = File(...)):
 
 
 @app.get("/search")
-def query_documents(query: str = Query(..., description="Your search query"), top_k: int = 3):
+def query(user_query: str = Query(...), top_k: int = 3) -> Dict[str, Any]:
     try:
-        results = search_engine.query(query, top_k)
-        print(results)
-        context = [{"text": item.get('text'), "score": item.get('score')} for item in results]
-        # results = llm.answer_question(query, [item.get('text') for item in context])
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        parsed = llm.extract_query_and_filters(user_query)
+        query_text = parsed["query_text"]
+        es_filter = parsed.get("es_filter", {})
+        
+        print(query_text, es_filter)
 
-    return {
-        "query": query,
-        # "results": results,
-        "context": context
-    }
+        # ✅ Use hybrid_search_query instead of building query inline
+        es_query = search_engine.hybrid_search_query(query_text, es_filter, k=top_k)
+
+        response = search_engine.es.search(index=search_engine.index_name, body={"size": top_k, "query": es_query})
+
+        results = [
+            {
+                "company_name": hit["_source"].get("company_name"),
+                "chunk_type": hit["_source"].get("chunk_type"),
+                "text": hit["_source"].get("text"),
+                "score": hit["_score"]
+            }
+            for hit in response["hits"]["hits"]
+        ]
+        
+        llm_ans = llm.answer_question(user_query, [dict_to_text(item) for item in results])
+
+        return {
+            "query": user_query,
+            "query_text": query_text,
+            "llm_ans": llm_ans,
+            "filters_applied": es_filter,
+            "results": results
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {e}")
 
 @app.delete("/documents")
 def delete_documents():
